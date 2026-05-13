@@ -1,0 +1,69 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id         String     @id @default(cuid())
+  username   String     @unique
+  email      String     @unique
+  password   String
+  templateId Int        @default(1)
+  createdAt  DateTime   @default(now())
+
+  posts      Post[]
+  gallery    Gallery[]
+  htmlFiles  HtmlFile[]
+  categories Category[]
+}
+
+model Category {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name      String
+  createdAt DateTime @default(now())
+
+  @@unique([userId, name])
+}
+
+model Post {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  content   String   @db.Text
+  category  String   @default("")
+  isPrivate Boolean  @default(false)
+  password  String   @default("")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Gallery {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  imageData String?  @db.Text   // base64
+  isPrivate Boolean  @default(false)
+  password  String   @default("")
+  createdAt DateTime @default(now())
+}
+
+model HtmlFile {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title       String
+  fileName    String
+  htmlContent String   @db.Text
+  isPrivate   Boolean  @default(false)
+  password    String   @default("")
+  createdAt   DateTime @default(now())
+}
