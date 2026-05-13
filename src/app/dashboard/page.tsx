@@ -50,10 +50,7 @@ export default function DashboardPage() {
   );
   if (!session) return null;
 
-  const rootDomain = process.env.NODE_ENV === "production"
-    ? "blu3k3y.cloud"
-    : "localhost:3000";
-  
+  const rootDomain = 'blu3k3y.cloud';  
   const homeUrl = `https://${session.user.username}.blu3k3y.cloud`;
   
   return (
