@@ -73,7 +73,7 @@ export default function DashboardPage() {
               <p style={{ fontSize: 12, color: "#aaa", fontWeight: 600, letterSpacing: ".06em", marginBottom: 6 }}>내 홈 주소</p>
               <p style={{ fontSize: 18, fontWeight: 700, color: "#111" }}>{session.user.username}.blu3k3y.cloud</p>
             </div>
-            <a href={`http://${session.user.username}.localhost:3000`} target="_blank" rel="noreferrer"
+            <a href={`https://${session.user.username}.${process.env.NEXT_PUBLIC_ROOT_DOMAIN}`} target="_blank" rel="noreferrer"
               style={{ padding: "9px 18px", background: "#111", color: "#fff", borderRadius: 8, fontSize: 13, fontWeight: 600, textDecoration: "none" }}>
               내 홈 보기 →
             </a>
