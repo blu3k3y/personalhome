@@ -54,9 +54,7 @@ export default function DashboardPage() {
     ? "blu3k3y.cloud"
     : "localhost:3000";
   
-  const homeUrl = process.env.NODE_ENV === "production"
-    ? `https://${session.user.username}.${rootDomain}`
-    : `http://${session.user.username}.${rootDomain}`;
+  const homeUrl = `https://${session.user.username}.blu3k3y.cloud`;
   
   return (
     <div style={{ minHeight: "100vh", background: "#F7F7F5", fontFamily: "Georgia, serif" }}>
