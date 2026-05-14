@@ -515,6 +515,8 @@ export default function Win98Home({ username, isOwner: isOwnerProp, initialData 
     await api("/api/categories", "DELETE", { id });
     setCategories(cs => cs.filter(c => c.id !== id));
   };
+
+  const savePost = async (d: any) => {
     if (d.id) {
       const updated = await api("/api/posts", "PUT", d);
       setPosts(ps => ps.map(p => p.id === updated.id ? updated : p));
@@ -524,6 +526,8 @@ export default function Win98Home({ username, isOwner: isOwnerProp, initialData 
     }
     setWins(w => ({ ...w, write: false }));
   };
+
+  const delPost = async (id: string) => {
   const delPost = async (id: string) => {
     if (!confirm("삭제할까요?")) return;
     await api("/api/posts", "DELETE", { id });
@@ -707,4 +711,5 @@ export default function Win98Home({ username, isOwner: isOwnerProp, initialData 
       </div>
     </div>
   );
+}
 }
