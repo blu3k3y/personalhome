@@ -1,25 +1,30 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const ROOT_DOMAIN = process.env.NEXT_PUBLIC_ROOT_DOMAIN!;
+const ROOT_DOMAIN = "blu3k3y.cloud";
 
 export function proxy(req: NextRequest) {
   const host = req.headers.get("host") || "";
   const url = req.nextUrl.clone();
 
-  const hostWithoutPort = host.split(":")[0]; // "ming9.localhost"
-  const isLocal = hostWithoutPort.endsWith(".localhost");
-  const isSubdomain = isLocal && hostWithoutPort !== "localhost";
-  const subdomain = isLocal ? hostWithoutPort.replace(".localhost", "") : "";
+  const hostWithoutPort = host.split(":")[0];
 
-  console.log("HOST:", host);
-  console.log("hostWithoutPort:", hostWithoutPort);
-  console.log("isLocal:", isLocal);
-  console.log("isSubdomain:", isSubdomain);
-  console.log("subdomain:", subdomain);
+  // 로컬 개발
+  const isLocal = hostWithoutPort.endsWith(".localhost");
+
+  // 프로덕션 서브도메인
+  const isProdSubdomain =
+    hostWithoutPort.endsWith(`.${ROOT_DOMAIN}`) &&
+    hostWithoutPort !== `www.${ROOT_DOMAIN}` &&
+    hostWithoutPort !== ROOT_DOMAIN;
+
+  const isSubdomain = isLocal || isProdSubdomain;
+
+  const subdomain = isLocal
+    ? hostWithoutPort.replace(".localhost", "")
+    : hostWithoutPort.replace(`.${ROOT_DOMAIN}`, "");
 
   if (isSubdomain && subdomain) {
     url.pathname = `/u/${subdomain}${url.pathname}`;
-    console.log("Rewriting to:", url.pathname);
     return NextResponse.rewrite(url);
   }
 
