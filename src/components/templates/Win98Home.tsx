@@ -316,27 +316,111 @@ function GalleryWindow({ gallery, isOwner, onAdd, onView, onClose }: {
 }
 
 /* ── HTML Files Window ── */
-function HtmlFilesWindow({ files, isOwner, onOpen, onClose }: {
-  files: HtmlFile[]; isOwner: boolean; onOpen: (f: HtmlFile) => void; onClose: () => void;
+function HtmlFilesWindow({ files, isOwner, onOpen, onAdd, onClose }: {
+  files: HtmlFile[]; isOwner: boolean; onOpen: (f: HtmlFile) => void; onAdd: () => void; onClose: () => void;
 }) {
   return (
     <Win98Window title="HTML Files" icon="🌐" initialPos={{ x: 60, y: 200 }} onClose={onClose} zIndex={20}>
-      <div style={{ padding: 8, width: 200 }}>
+      <div style={{ ...W.menubar }}>
+        {isOwner && <span style={{ padding: "1px 6px", cursor: "pointer" }} onClick={onAdd}>+ Upload</span>}
+        <span style={{ padding: "1px 6px" }}>View</span>
+      </div>
+      <div style={{ padding: 8, width: 240 }}>
         {files.length === 0
           ? <p style={{ fontSize: 11, color: "#808080" }}>No HTML files yet.</p>
           : files.map(f => (
             <div key={f.id} onClick={() => onOpen(f)}
               style={{ display: "flex", alignItems: "center", gap: 6, padding: "3px 4px", cursor: "pointer", fontSize: 11 }}
-              onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = "#000080"}
-              onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = "transparent"}>
+              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "#000080"; (e.currentTarget as HTMLElement).style.color = "#fff"; }}
+              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "transparent"; (e.currentTarget as HTMLElement).style.color = "#000"; }}>
               <span>📄</span>
               <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" as const }}>{f.fileName}</span>
+              <span style={{ fontSize: 10, opacity: 0.6 }}>{f.isPrivate ? "🔒" : ""}</span>
             </div>
           ))
         }
       </div>
       <div style={W.statusbar}><span style={W.statusPanel}>{files.length} file(s)</span></div>
     </Win98Window>
+  );
+}
+
+/* ── HTML Upload Modal (Win98 style) ── */
+function HtmlUploadModal98({ item, onSave, onClose }: { item?: HtmlFile; onSave: (d: any) => Promise<void>; onClose: () => void }) {
+  const [title, setTitle] = useState(item?.title || "");
+  const [fileName, setFileName] = useState(item?.fileName || "");
+  const [htmlContent, setHtmlContent] = useState(item?.htmlContent || "");
+  const [isPrivate, setIsPrivate] = useState(item?.isPrivate || false);
+  const [password, setPassword] = useState(item?.password || "");
+  const [tab, setTab] = useState<"upload"|"paste">("upload");
+  const [loading, setLoading] = useState(false);
+
+  const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0]; if (!f) return;
+    setFileName(f.name);
+    const r = new FileReader(); r.onload = ev => setHtmlContent(ev.target?.result as string); r.readAsText(f);
+  };
+  const save = async () => {
+    if (!title.trim()) return alert("Title is required.");
+    if (!htmlContent.trim()) return alert("HTML content is required.");
+    if (isPrivate && !password) return alert("Set a password.");
+    setLoading(true);
+    await onSave({ id: item?.id, title, fileName: fileName || "untitled.html", htmlContent, isPrivate, password: isPrivate ? password : "" });
+    setLoading(false);
+  };
+
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.5)", zIndex: 9000, display: "flex", alignItems: "center", justifyContent: "center" }} onClick={onClose}>
+      <div style={{ background: "#c0c0c0", border: "2px solid", borderColor: "#fff #808080 #808080 #fff", width: 420 }} onClick={e => e.stopPropagation()}>
+        <div style={W.titlebar}>
+          <span style={{ display: "flex", alignItems: "center", gap: 4 }}><span>🌐</span>{item ? "Edit HTML File" : "Upload HTML File"}</span>
+          <div style={W.winBtn} onClick={onClose}>✕</div>
+        </div>
+        <div style={{ ...W.menubar }}>
+          <span style={{ padding: "1px 6px", background: tab === "upload" ? "#fff" : "transparent", border: tab === "upload" ? "1px solid #808080" : "none", cursor: "pointer" }} onClick={() => setTab("upload")}>📂 File</span>
+          <span style={{ padding: "1px 6px", background: tab === "paste" ? "#fff" : "transparent", border: tab === "paste" ? "1px solid #808080" : "none", cursor: "pointer" }} onClick={() => setTab("paste")}>📋 Paste</span>
+        </div>
+        <div style={{ padding: 12 }}>
+          <div style={{ marginBottom: 8 }}>
+            <span style={{ fontSize: 11 }}>Title: </span>
+            <input value={title} onChange={e => setTitle(e.target.value)} style={{ ...W.input98, width: "calc(100% - 40px)" }} />
+          </div>
+          {tab === "upload" && (
+            <label style={{ display: "block", border: "2px solid", borderColor: "#808080 #fff #fff #808080", background: "#fff", padding: "20px", textAlign: "center", cursor: "pointer", marginBottom: 8, position: "relative" }}>
+              <input type="file" accept=".html,.htm" onChange={handleFile} style={{ position: "absolute", inset: 0, opacity: 0, cursor: "pointer" }} />
+              {htmlContent
+                ? <div style={{ fontSize: 11 }}>
+                    <div style={{ fontSize: 20, marginBottom: 4 }}>✅</div>
+                    <div style={{ fontWeight: "bold" }}>{fileName}</div>
+                    <div style={{ color: "#808080", fontSize: 10 }}>{htmlContent.length.toLocaleString()} chars</div>
+                  </div>
+                : <div style={{ fontSize: 11, color: "#808080" }}>
+                    <div style={{ fontSize: 24, marginBottom: 4 }}>📄</div>
+                    Click to select .html file
+                  </div>
+              }
+            </label>
+          )}
+          {tab === "paste" && (
+            <textarea value={htmlContent} onChange={e => { setHtmlContent(e.target.value); if (!fileName) setFileName("untitled.html"); }}
+              placeholder={"<!DOCTYPE html>\n<html>\n<body>\n  <h1>Hello</h1>\n</body>\n</html>"}
+              spellCheck={false}
+              style={{ width: "100%", minHeight: 120, background: "#fff", border: "2px solid", borderColor: "#808080 #fff #fff #808080", fontSize: 11, fontFamily: "monospace", padding: 6, outline: "none", resize: "vertical", boxSizing: "border-box", marginBottom: 8 }} />
+          )}
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+            <label style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, cursor: "pointer" }}>
+              <input type="checkbox" checked={isPrivate} onChange={e => setIsPrivate(e.target.checked)} />
+              🔒 Private
+            </label>
+            {isPrivate && <input type="password" placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} style={{ ...W.input98, flex: 1 }} />}
+          </div>
+          <div style={{ display: "flex", justifyContent: "flex-end", gap: 6 }}>
+            <button style={W.btn98} onClick={onClose}>Cancel</button>
+            <button style={W.btn98} onClick={save} disabled={loading}>{loading ? "Saving..." : item ? "Save" : "Upload"}</button>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -383,6 +467,9 @@ export default function Win98Home({ username, isOwner: isOwnerProp, initialData 
   const [viewGal, setViewGal] = useState<GalleryItem | null>(null);
   const [viewHtml, setViewHtml] = useState<HtmlFile | null>(null);
   const [pwGate, setPwGate] = useState<null | { item: any; type: string; correct: string; onSuccess: () => void }>(null);
+  const [newCat, setNewCat] = useState("");
+  const [catWinOpen, setCatWinOpen] = useState(false);
+  const [htmlModal, setHtmlModal] = useState<null | { item?: HtmlFile }>(null);
 
   useEffect(() => {
     const tick = () => {
@@ -405,7 +492,29 @@ export default function Win98Home({ username, isOwner: isOwnerProp, initialData 
     return res.json();
   };
 
-  const savePost = async (d: any) => {
+  const saveHtmlFile = async (d: any) => {
+    if (d.id) {
+      const u = await api("/api/htmlfiles", "PUT", d);
+      setHtmlFiles(fs => fs.map(f => f.id === u.id ? u : f));
+    } else {
+      const c = await api("/api/htmlfiles", "POST", d);
+      setHtmlFiles(fs => [c, ...fs]);
+    }
+    setHtmlModal(null);
+  };
+
+  const addCat = async () => {
+    const n = newCat.trim(); if (!n) return;
+    try {
+      const created = await api("/api/categories", "POST", { name: n });
+      setCategories(cs => [...cs, created]); setNewCat("");
+    } catch { alert("이미 존재하는 카테고리예요."); }
+  };
+  const delCat = async (id: string) => {
+    if (!confirm("카테고리를 삭제할까요?")) return;
+    await api("/api/categories", "DELETE", { id });
+    setCategories(cs => cs.filter(c => c.id !== id));
+  };
     if (d.id) {
       const updated = await api("/api/posts", "PUT", d);
       setPosts(ps => ps.map(p => p.id === updated.id ? updated : p));
@@ -442,7 +551,7 @@ export default function Win98Home({ username, isOwner: isOwnerProp, initialData 
         {[
           { icon: "✏️", label: "Write", onClick: () => { if (isOwner) { setWritePost(undefined); setWins(w => ({ ...w, write: true })); } } },
           { icon: "🖼️", label: "Gallery", onClick: () => setWins(w => ({ ...w, gallery: true })) },
-          { icon: "📂", label: "Categories", onClick: () => setWins(w => ({ ...w, posts: true })) },
+          { icon: "📂", label: "Categories", onClick: () => setCatWinOpen(true) },
           { icon: "🌐", label: "HTML Files", onClick: () => setWins(w => ({ ...w, htmlFiles: true })) },
         ].map(item => (
           <div key={item.label} onClick={item.onClick}
@@ -454,6 +563,42 @@ export default function Win98Home({ username, isOwner: isOwnerProp, initialData 
           </div>
         ))}
       </div>
+
+      {/* Categories Window */}
+      {catWinOpen && (
+        <Win98Window title="Categories" icon="📂" initialPos={{ x: 100, y: 120 }} onClose={() => setCatWinOpen(false)} zIndex={20}>
+          <div style={{ ...W.menubar }}>
+            <span style={{ padding: "1px 6px" }}>Manage</span>
+          </div>
+          <div style={{ width: 240, padding: 8 }}>
+            {categories.length === 0
+              ? <div style={{ fontSize: 11, color: "#808080", padding: "8px 4px" }}>No categories yet.</div>
+              : categories.map(c => (
+                <div key={c.id} style={{ display: "flex", alignItems: "center", gap: 6, padding: "4px 4px", borderBottom: "1px solid #d0d0d0", fontSize: 11 }}
+                  onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = "#e0e0e0"}
+                  onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = "transparent"}>
+                  <span>📁</span>
+                  <span style={{ flex: 1 }}>{c.name}</span>
+                  {isOwner && (
+                    <button onClick={() => delCat(c.id)}
+                      style={{ ...W.btn98, padding: "1px 6px", fontSize: 10, color: "#c00" }}>✕</button>
+                  )}
+                </div>
+              ))
+            }
+            {isOwner && (
+              <div style={{ display: "flex", gap: 4, marginTop: 8 }}>
+                <input value={newCat} onChange={e => setNewCat(e.target.value)}
+                  onKeyDown={e => e.key === "Enter" && addCat()}
+                  placeholder="New category..."
+                  style={{ ...W.input98, flex: 1, fontSize: 11 }} />
+                <button onClick={addCat} style={{ ...W.btn98, fontSize: 11 }}>Add</button>
+              </div>
+            )}
+          </div>
+          <div style={W.statusbar}><span style={W.statusPanel}>{categories.length} item(s)</span></div>
+        </Win98Window>
+      )}
 
       {/* Posts Window */}
       {wins.posts && (
@@ -496,6 +641,7 @@ export default function Win98Home({ username, isOwner: isOwnerProp, initialData 
       {wins.htmlFiles && (
         <HtmlFilesWindow files={htmlFiles} isOwner={isOwner}
           onOpen={f => openItem(f, "html")}
+          onAdd={() => setHtmlModal({})}
           onClose={() => setWins(w => ({ ...w, htmlFiles: false }))} />
       )}
 
@@ -544,6 +690,10 @@ export default function Win98Home({ username, isOwner: isOwnerProp, initialData 
           onSuccess={pw => { if (pw === pwGate.correct) pwGate.onSuccess(); else alert("Wrong password."); }}
           onCancel={() => setPwGate(null)}
         />
+      )}
+
+      {htmlModal !== null && (
+        <HtmlUploadModal98 item={htmlModal.item} onSave={saveHtmlFile} onClose={() => setHtmlModal(null)} />
       )}
 
       {/* Taskbar */}
