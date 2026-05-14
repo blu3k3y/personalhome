@@ -528,7 +528,6 @@ export default function Win98Home({ username, isOwner: isOwnerProp, initialData 
   };
 
   const delPost = async (id: string) => {
-  const delPost = async (id: string) => {
     if (!confirm("삭제할까요?")) return;
     await api("/api/posts", "DELETE", { id });
     setPosts(ps => ps.filter(p => p.id !== id));
@@ -711,5 +710,4 @@ export default function Win98Home({ username, isOwner: isOwnerProp, initialData 
       </div>
     </div>
   );
-}
 }
