@@ -530,8 +530,9 @@ export default function Win98Home({ username, isOwner: isOwnerProp, initialData 
       <div style={{ position: "absolute", right: 12, top: 12, display: "flex", flexDirection: "column", gap: 16 }}>
         {[
           { icon: "✏️", label: "Write", onClick: () => { if (isOwner) { setWritePost(undefined); setWins(w => ({ ...w, write: true })); } } },
-          { icon: "🖼️", label: "Gallery", onClick: () => setWins(w => ({ ...w, gallery: true })) },
+          { icon: "📋", label: "Posts", onClick: () => setWins(w => ({ ...w, posts: true })) },
           { icon: "📂", label: "Categories", onClick: () => setCatWinOpen(true) },
+          { icon: "🖼️", label: "Gallery", onClick: () => setWins(w => ({ ...w, gallery: true })) },
           { icon: "🌐", label: "HTML", onClick: () => setWins(w => ({ ...w, htmlFiles: true })) },
         ].map(item => (
           <div key={item.label} onClick={item.onClick}
