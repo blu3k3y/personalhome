@@ -256,7 +256,8 @@ function WriteWindow({ categories, post, onSave, onClose, onMinimize }: {
         </div>
         {!htmlMode
           ? <div ref={editorRef} contentEditable suppressContentEditableWarning onInput={() => setContent(editorRef.current?.innerHTML || "")} style={{ background: "#fff", border: "2px solid", borderColor: "#808080 #fff #fff #808080", minHeight: 160, padding: 6, fontSize: 11, outline: "none", lineHeight: 1.6 }} />
-          : <textarea value={content} onChange={e => setContent(e.target.value)} style={{ background: "#fff", border: "2px solid", borderColor: "#808080 #fff #fff #808080", width: "100%", minHeight: 160, padding: 6, fontSize: 11, fontFamily: "monospace", outline: "none", resize: "vertical" }} />
+          : <textarea value={content} onChange={e => setContent(e.target.value)}
+              style={{ background: "#fff", border: "2px solid", borderColor: "#808080 #fff #fff #808080", width: "100%", minHeight: 160, padding: 6, fontSize: 11, fontFamily: "monospace", outline: "none", resize: "vertical", boxSizing: "border-box", display: "block" }} />
         }
         <div style={{ display: "flex", gap: 6, justifyContent: "flex-end", marginTop: 8 }}>
           <button style={W.btn98} onClick={onClose}>Cancel</button>
