@@ -523,7 +523,7 @@ export default function UserHomeClient({ username, isOwner: isOwnerProp, initial
         {/* Topbar */}
         <header style={{ position: "sticky", top: 0, zIndex: 10, background: "rgba(255,255,255,.85)", backdropFilter: "blur(8px)", borderBottom: "1px solid #F0F0EE", padding: "10px 28px", display: "flex", alignItems: "center", gap: 12 }}>
           <span style={{ fontSize: 12, color: "#bbb", flex: 1 }}>
-            {section === "posts" ? (activeCat === "all" ? "전체 글" : activeCat) : section === "gallery" ? "갤러리" : section === "html" ? "HTML files" : "비밀 글"}
+            {section === "posts" ? (activeCat === "all" ? "전체 글" : (categories.find(c => c.id === activeCat)?.name || activeCat)) : section === "gallery" ? "갤러리" : section === "html" ? "HTML files" : "비밀 글"}
           </span>
           <div style={{ display: "flex", alignItems: "center", gap: 6, background: "#f7f7f5", border: "1px solid #ebebea", borderRadius: 8, padding: "6px 10px" }}>
             <span style={{ fontSize: 12, color: "#aaa" }}>🔍</span>
@@ -545,7 +545,7 @@ export default function UserHomeClient({ username, isOwner: isOwnerProp, initial
           {(section === "posts" || section === "private") && (
             <>
               <div style={{ display: "flex", alignItems: "baseline", gap: 10, marginBottom: 24 }}>
-                <h2 style={{ fontSize: 22, fontWeight: 800, letterSpacing: "-.03em" }}>{section === "private" ? "비밀 글" : activeCat === "all" ? "전체 글" : activeCat}</h2>
+                <h2 style={{ fontSize: 22, fontWeight: 800, letterSpacing: "-.03em" }}>{section === "private" ? "비밀 글" : activeCat === "all" ? "전체 글" : (categories.find(c => c.id === activeCat)?.name || activeCat)}</h2>
                 <span style={{ fontSize: 13, color: "#bbb" }}>{filteredPosts.length}</span>
               </div>
               {filteredPosts.length === 0
