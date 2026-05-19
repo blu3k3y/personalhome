@@ -52,8 +52,10 @@ function RichEditor({ value, onChange }: { value: string; onChange: (v: string) 
   const [htmlSrc, setHtmlSrc] = useState(value || "");
 
   useEffect(() => {
-    if (!init.current && ref.current) { ref.current.innerHTML = value || ""; init.current = true; }
-  }, []);
+    if (mode === "visual" && ref.current) {
+      ref.current.innerHTML = htmlSrc || value || "";
+    }
+  }, [mode]);
 
   const exec = (cmd: string, val?: string) => {
     ref.current?.focus();
@@ -75,8 +77,17 @@ function RichEditor({ value, onChange }: { value: string; onChange: (v: string) 
         <div style={{ flex: 1 }} />
         <button onMouseDown={e => {
           e.preventDefault();
-          if (mode === "visual") { setHtmlSrc(ref.current?.innerHTML || ""); setMode("html"); }
-          else { onChange(htmlSrc); if (ref.current) ref.current.innerHTML = htmlSrc; setMode("visual"); }
+          if (mode === "visual") {
+            setHtmlSrc(ref.current?.innerHTML || "");
+            setMode("html");
+          } else {
+            onChange(htmlSrc);
+            setMode("visual");
+            // 모드 전환 후 DOM이 렌더링된 다음에 innerHTML 설정
+            setTimeout(() => {
+              if (ref.current) ref.current.innerHTML = htmlSrc;
+            }, 0);
+          }
         }} style={{ padding: "3px 10px", borderRadius: 5, border: `1px solid ${mode === "html" ? "#111" : "#ddd"}`, background: mode === "html" ? "#111" : "#fff", color: mode === "html" ? "#fff" : "#555", cursor: "pointer", fontSize: 12, fontFamily: "monospace", fontWeight: 600 }}>{"<>"}</button>
       </div>
       {mode === "visual" && <div ref={ref} contentEditable suppressContentEditableWarning onInput={() => onChange(ref.current?.innerHTML || "")} style={{ padding: "14px 16px", minHeight: 200, outline: "none", fontSize: 15, lineHeight: 1.75, fontFamily: "inherit", color: "#1a1a1a" }} />}
