@@ -228,6 +228,74 @@ function PostViewer({ post, onClose, onEdit }: { post: Post; onClose: () => void
   );
 }
 
+function HtmlUploadModal({ item, onSave, onClose }: { item?: HtmlFile; onSave: (d: any) => void; onClose: () => void }) {
+  const [title, setTitle] = useState(item?.title || "");
+  const [fileName, setFileName] = useState(item?.fileName || "");
+  const [htmlContent, setHtmlContent] = useState(item?.htmlContent || "");
+  const [isPrivate, setIsPrivate] = useState(item?.isPrivate || false);
+  const [password, setPassword] = useState(item?.password || "");
+  const [tab, setTab] = useState<"upload"|"paste">("upload");
+  const [loading, setLoading] = useState(false);
+
+  const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0]; if (!f) return;
+    setFileName(f.name);
+    const r = new FileReader(); r.onload = ev => setHtmlContent(ev.target?.result as string); r.readAsText(f);
+  };
+  const save = async () => {
+    if (!title.trim()) return alert("제목을 입력해주세요.");
+    if (!htmlContent.trim()) return alert("HTML 내용을 추가해주세요.");
+    if (isPrivate && !password) return alert("비밀번호를 설정해주세요.");
+    setLoading(true);
+    await onSave({ id: item?.id, title, fileName: fileName || "untitled.html", htmlContent, isPrivate, password: isPrivate ? password : "" });
+    setLoading(false);
+  };
+
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.4)", zIndex: 9000, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }} onClick={onClose}>
+      <div style={{ background: "#fff", borderRadius: 16, width: "100%", maxWidth: 520, padding: "28px 32px", position: "relative" }} onClick={e => e.stopPropagation()}>
+        <button onClick={onClose} style={{ position: "absolute", top: 16, right: 16, background: "none", border: "none", cursor: "pointer", fontSize: 18, color: "#aaa" }}>×</button>
+        <h2 style={{ fontSize: 16, fontWeight: 700, marginBottom: 18 }}>{item ? "HTML 수정" : "HTML 업로드"}</h2>
+        <input value={title} onChange={e => setTitle(e.target.value)} placeholder="제목"
+          style={{ width: "100%", padding: "9px 12px", border: "1px solid #e5e5e5", borderRadius: 8, fontSize: 14, fontFamily: "inherit", outline: "none", marginBottom: 14, boxSizing: "border-box" }} />
+        <div style={{ display: "flex", gap: 6, marginBottom: 12 }}>
+          <button onClick={() => setTab("upload")} style={{ padding: "6px 14px", borderRadius: 6, border: "none", cursor: "pointer", fontSize: 13, background: tab === "upload" ? "#111" : "#f5f5f5", color: tab === "upload" ? "#fff" : "#555", fontFamily: "inherit" }}>📂 파일 업로드</button>
+          <button onClick={() => setTab("paste")} style={{ padding: "6px 14px", borderRadius: 6, border: "none", cursor: "pointer", fontSize: 13, background: tab === "paste" ? "#111" : "#f5f5f5", color: tab === "paste" ? "#fff" : "#555", fontFamily: "inherit" }}>📋 직접 입력</button>
+        </div>
+        {tab === "upload" && (
+          <label style={{ display: "block", border: "2px dashed #ddd", borderRadius: 10, padding: "28px 24px", textAlign: "center", cursor: "pointer", marginBottom: 14, position: "relative" }}
+            onMouseEnter={e => (e.currentTarget as HTMLElement).style.borderColor = "#111"}
+            onMouseLeave={e => (e.currentTarget as HTMLElement).style.borderColor = "#ddd"}>
+            <input type="file" accept=".html,.htm" onChange={handleFile} style={{ position: "absolute", inset: 0, opacity: 0, cursor: "pointer" }} />
+            {htmlContent
+              ? <div><div style={{ fontSize: 28, marginBottom: 6 }}>✅</div><p style={{ fontSize: 13, fontWeight: 600 }}>{fileName}</p><p style={{ fontSize: 11, color: "#aaa", marginTop: 4 }}>{htmlContent.length.toLocaleString()} chars</p></div>
+              : <div style={{ color: "#aaa" }}><div style={{ fontSize: 32, marginBottom: 8 }}>📄</div><p style={{ fontSize: 13 }}>.html / .htm 파일을 선택하세요</p></div>
+            }
+          </label>
+        )}
+        {tab === "paste" && (
+          <textarea value={htmlContent} onChange={e => { setHtmlContent(e.target.value); if (!fileName) setFileName("untitled.html"); }}
+            placeholder={"<!DOCTYPE html>\n<html>\n<body>\n  <h1>Hello</h1>\n</body>\n</html>"}
+            spellCheck={false}
+            style={{ width: "100%", minHeight: 160, padding: "12px 14px", border: "1px solid #e5e5e5", borderRadius: 8, fontSize: 12, fontFamily: "monospace", outline: "none", resize: "vertical", boxSizing: "border-box", marginBottom: 14 }} />
+        )}
+        <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 14 }}>
+          <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, cursor: "pointer" }}>
+            <input type="checkbox" checked={isPrivate} onChange={e => setIsPrivate(e.target.checked)} />
+            🔒 비밀
+          </label>
+          {isPrivate && <input type="password" placeholder="비밀번호" value={password} onChange={e => setPassword(e.target.value)}
+            style={{ flex: 1, padding: "7px 10px", border: "1px solid #e5e5e5", borderRadius: 8, fontSize: 13, fontFamily: "inherit", outline: "none" }} />}
+        </div>
+        <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
+          <button onClick={onClose} style={{ padding: "9px 16px", borderRadius: 8, border: "1px solid #ddd", background: "#fff", cursor: "pointer", fontSize: 13 }}>취소</button>
+          <button onClick={save} disabled={loading} style={{ padding: "9px 16px", borderRadius: 8, border: "none", background: "#111", color: "#fff", cursor: "pointer", fontSize: 13, fontWeight: 500 }}>{loading ? "저장 중..." : item ? "저장" : "업로드"}</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ── HTML Viewer ── */
 function HtmlViewer({ item, onClose }: { item: HtmlFile; onClose: () => void }) {
   const [fullscreen, setFullscreen] = useState(false);
@@ -288,6 +356,7 @@ export default function UserHomeClient({ username, isOwner: isOwnerProp, initial
   const [viewPost, setViewPost] = useState<Post | null>(null);
   const [viewImg, setViewImg] = useState<GalleryItem | null>(null);
   const [viewHtml, setViewHtml] = useState<HtmlFile | null>(null);
+  const [htmlModal, setHtmlModal] = useState<null | { item?: HtmlFile }>(null);
   const [pwGate, setPwGate] = useState<null | { item: any; type: string; onSuccess: () => void }>(null);
 
   // 서브도메인에서 쿠키 문제 우회 — API로 본인 확인
@@ -337,6 +406,17 @@ export default function UserHomeClient({ username, isOwner: isOwnerProp, initial
     if (!confirm("삭제할까요?")) return;
     await api("/api/gallery", "DELETE", { id });
     setGallery(gs => gs.filter(g => g.id !== id));
+  };
+
+  const saveHtmlFile = async (d: any) => {
+    if (d.id) {
+      const u = await api("/api/htmlfiles", "PUT", d);
+      setHtmlFiles(fs => fs.map(f => f.id === u.id ? u : f));
+    } else {
+      const c = await api("/api/htmlfiles", "POST", d);
+      setHtmlFiles(fs => [c, ...fs]);
+    }
+    setHtmlModal(null); setViewHtml(null);
   };
 
   /* ── Categories ── */
@@ -453,7 +533,9 @@ export default function UserHomeClient({ username, isOwner: isOwnerProp, initial
           {isOwner && (
             section === "gallery"
               ? <button onClick={() => setGalModal({})} style={{ padding: "7px 14px", borderRadius: 8, border: "none", background: "#111", color: "#fff", cursor: "pointer", fontSize: 13, fontWeight: 500 }}>+ 이미지</button>
-              : section !== "html" && <button onClick={() => setWriteModal({})} style={{ padding: "7px 14px", borderRadius: 8, border: "none", background: "#111", color: "#fff", cursor: "pointer", fontSize: 13, fontWeight: 500 }}>✏️ 쓰기</button>
+              : section === "html"
+              ? <button onClick={() => setHtmlModal({})} style={{ padding: "7px 14px", borderRadius: 8, border: "none", background: "#111", color: "#fff", cursor: "pointer", fontSize: 13, fontWeight: 500 }}>📄 Upload HTML</button>
+              : <button onClick={() => setWriteModal({})} style={{ padding: "7px 14px", borderRadius: 8, border: "none", background: "#111", color: "#fff", cursor: "pointer", fontSize: 13, fontWeight: 500 }}>✏️ 쓰기</button>
           )}
         </header>
 
@@ -578,6 +660,7 @@ export default function UserHomeClient({ username, isOwner: isOwnerProp, initial
       )}
       {viewHtml && <HtmlViewer item={viewHtml} onClose={() => setViewHtml(null)} />}
       {pwGate && <PwGate correct={pwGate.item.password} onSuccess={pwGate.onSuccess} onCancel={() => setPwGate(null)} />}
+      {htmlModal !== null && <HtmlUploadModal item={htmlModal.item} onSave={saveHtmlFile} onClose={() => setHtmlModal(null)} />}
     </div>
   );
 }
