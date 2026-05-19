@@ -71,16 +71,13 @@ function PwGate({ onSuccess, onCancel }: { onSuccess: (pw: string) => void; onCa
 }
 
 /* ── Win98Window ── */
-function Win98Window({ title, icon = "📄", children, initialPos, onClose, zIndex = 10, onFocus, onMinimizedChange }: {
+function Win98Window({ title, icon = "📄", children, initialPos, onClose, zIndex = 10, onFocus, onMinimize }: {
   title: string; icon?: string; children: React.ReactNode;
   initialPos: { x: number; y: number }; onClose: () => void;
-  zIndex?: number; onFocus?: () => void; onMinimizedChange?: (v: boolean) => void;
+  zIndex?: number; onFocus?: () => void; onMinimize?: () => void;
 }) {
   const [pos, setPos] = useState(initialPos);
-  const [minimized, setMinimized] = useState(false);
   const dragRef = useRef<{ startX: number; startY: number; origX: number; origY: number } | null>(null);
-
-  const setMin = (v: boolean) => { setMinimized(v); onMinimizedChange?.(v); };
 
   const onMouseDown = (e: React.MouseEvent) => {
     onFocus?.();
@@ -94,14 +91,12 @@ function Win98Window({ title, icon = "📄", children, initialPos, onClose, zInd
     window.addEventListener("mouseup", onUp);
   };
 
-  if (minimized) return null;
-
   return (
     <div style={{ ...W.win, left: pos.x, top: pos.y, zIndex }} onMouseDown={() => onFocus?.()}>
       <div style={W.titlebar} onMouseDown={onMouseDown}>
         <span style={{ display: "flex", alignItems: "center", gap: 4 }}><span style={{ fontSize: 12 }}>{icon}</span>{title}</span>
         <div style={{ display: "flex", gap: 2 }}>
-          <div style={W.winBtn} onMouseDown={e => { e.stopPropagation(); setMin(true); }}>_</div>
+          <div style={W.winBtn} onMouseDown={e => { e.stopPropagation(); onMinimize?.(); }}>_</div>
           <div style={W.winBtn} onMouseDown={e => e.stopPropagation()}>□</div>
           <div style={W.winBtn} onMouseDown={e => { e.stopPropagation(); onClose(); }}>✕</div>
         </div>
@@ -203,8 +198,8 @@ function SettingsWindow({ bg, onChangeBg, onClose, isOwner }: {
 }
 
 /* ── WriteWindow ── */
-function WriteWindow({ categories, post, onSave, onClose }: {
-  categories: Category[]; post?: Post; onSave: (d: any) => Promise<void>; onClose: () => void;
+function WriteWindow({ categories, post, onSave, onClose, onMinimize }: {
+  categories: Category[]; post?: Post; onSave: (d: any) => Promise<void>; onClose: () => void; onMinimize?: () => void;
 }) {
   const [title, setTitle] = useState(post?.title || "");
   const [content, setContent] = useState(post?.content || "");
@@ -231,7 +226,7 @@ function WriteWindow({ categories, post, onSave, onClose }: {
   };
 
   return (
-    <Win98Window title={post ? "Edit Entry" : "New Entry"} icon="📝" initialPos={{ x: 80, y: 60 }} onClose={onClose} zIndex={50}>
+    <Win98Window title={post ? "Edit Entry" : "New Entry"} icon="📝" initialPos={{ x: 80, y: 60 }} onClose={onClose} onMinimize={onMinimize} zIndex={50}>
       <div style={W.menubar}><span style={{ padding: "1px 6px" }}>File</span><span style={{ padding: "1px 6px" }}>Format</span></div>
       <div style={{ display: "flex", gap: 2, padding: "3px 4px", borderBottom: "1px solid #808080", flexWrap: "wrap" as const, alignItems: "center" }}>
         {[{l:"B",c:"bold"},{l:"I",c:"italic"},{l:"U",c:"underline"}].map(t => (
@@ -274,9 +269,9 @@ function WriteWindow({ categories, post, onSave, onClose }: {
 }
 
 /* ── PostViewWindow ── */
-function PostViewWindow({ post, onClose, onEdit, isOwner }: { post: Post; onClose: () => void; onEdit: () => void; isOwner: boolean }) {
+function PostViewWindow({ post, onClose, onEdit, isOwner, onMinimize }: { post: Post; onClose: () => void; onEdit: () => void; isOwner: boolean; onMinimize?: () => void }) {
   return (
-    <Win98Window title={post.title} icon="📄" initialPos={{ x: 100, y: 80 }} onClose={onClose} zIndex={45}>
+    <Win98Window title={post.title} icon="📄" initialPos={{ x: 100, y: 80 }} onClose={onClose} onMinimize={onMinimize} zIndex={45}>
       <div style={W.menubar}><span style={{ padding: "1px 6px" }}>File</span></div>
       <div style={{ padding: 10, width: 420, maxHeight: 320, overflow: "auto" }}>
         <div style={{ display: "flex", gap: 6, marginBottom: 8, flexWrap: "wrap" as const }}>
@@ -292,9 +287,9 @@ function PostViewWindow({ post, onClose, onEdit, isOwner }: { post: Post; onClos
 }
 
 /* ── GalleryWindow ── */
-function GalleryWindow({ gallery, isOwner, onAdd, onView, onClose }: { gallery: GalleryItem[]; isOwner: boolean; onAdd: () => void; onView: (g: GalleryItem) => void; onClose: () => void }) {
+function GalleryWindow({ gallery, isOwner, onAdd, onView, onClose, onMinimize }: { gallery: GalleryItem[]; isOwner: boolean; onAdd: () => void; onView: (g: GalleryItem) => void; onClose: () => void; onMinimize?: () => void }) {
   return (
-    <Win98Window title="Gallery" icon="🖼️" initialPos={{ x: 320, y: 55 }} onClose={onClose} zIndex={20}>
+    <Win98Window title="Gallery" icon="🖼️" initialPos={{ x: 320, y: 55 }} onClose={onClose} onMinimize={onMinimize} zIndex={20}>
       <div style={W.menubar}>{isOwner && <span style={{ padding: "1px 6px", cursor: "pointer" }} onClick={onAdd}>+ Add</span>}<span style={{ padding: "1px 6px" }}>View</span></div>
       <div style={{ padding: 8, width: 220, maxHeight: 260, overflow: "auto" }}>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 4 }}>
@@ -312,9 +307,9 @@ function GalleryWindow({ gallery, isOwner, onAdd, onView, onClose }: { gallery: 
 }
 
 /* ── HtmlFilesWindow ── */
-function HtmlFilesWindow({ files, isOwner, onOpen, onAdd, onClose }: { files: HtmlFile[]; isOwner: boolean; onOpen: (f: HtmlFile) => void; onAdd: () => void; onClose: () => void }) {
+function HtmlFilesWindow({ files, isOwner, onOpen, onAdd, onClose, onMinimize }: { files: HtmlFile[]; isOwner: boolean; onOpen: (f: HtmlFile) => void; onAdd: () => void; onClose: () => void; onMinimize?: () => void }) {
   return (
-    <Win98Window title="HTML Files" icon="🌐" initialPos={{ x: 60, y: 200 }} onClose={onClose} zIndex={20}>
+    <Win98Window title="HTML Files" icon="🌐" initialPos={{ x: 60, y: 200 }} onClose={onClose} onMinimize={onMinimize} zIndex={20}>
       <div style={W.menubar}>{isOwner && <span style={{ padding: "1px 6px", cursor: "pointer" }} onClick={onAdd}>+ Upload</span>}<span style={{ padding: "1px 6px" }}>View</span></div>
       <div style={{ padding: 8, width: 240 }}>
         {files.length === 0 ? <p style={{ fontSize: 11, color: "#808080" }}>No HTML files yet.</p>
@@ -581,7 +576,7 @@ export default function Win98Home({ username, isOwner: isOwnerProp, initialData 
       {/* Posts Window */}
       {wins.posts && (
         <div style={{ display: minimized.posts ? "none" : "block" }}>
-        <Win98Window title={`${username}'s Posts`} icon="📋" initialPos={{ x: 12, y: 170 }} onClose={() => { setWins(w => ({ ...w, posts: false })); setMinimized(m => ({ ...m, posts: false })); }} onMinimizedChange={v => setMinimized(m => ({ ...m, posts: v }))} zIndex={15}>
+        <Win98Window title={`${username}'s Posts`} icon="📋" initialPos={{ x: 12, y: 170 }} onClose={() => { setWins(w => ({ ...w, posts: false })); setMinimized(m => ({ ...m, posts: false })); }} onMinimize={() => setMinimized(m => ({ ...m, posts: true }))} zIndex={15}>
           <div style={W.menubar}>
             {isOwner && <span style={{ padding: "1px 6px", cursor: "pointer" }} onClick={() => { setWritePost(undefined); setWins(w => ({ ...w, write: true })); }}>+ New</span>}
             <span style={{ padding: "1px 6px" }}>View</span>
@@ -607,10 +602,10 @@ export default function Win98Home({ username, isOwner: isOwnerProp, initialData 
         </div>
       )}
 
-      {wins.gallery && <div style={{ display: minimized.gallery ? "none" : "block" }}><GalleryWindow gallery={gallery} isOwner={isOwner} onAdd={() => {}} onView={g => openItem(g, "gallery")} onClose={() => { setWins(w => ({ ...w, gallery: false })); setMinimized(m => ({ ...m, gallery: false })); }} /></div>}
-      {wins.htmlFiles && <div style={{ display: minimized.htmlFiles ? "none" : "block" }}><HtmlFilesWindow files={htmlFiles} isOwner={isOwner} onOpen={f => openItem(f, "html")} onAdd={() => setHtmlModal({})} onClose={() => { setWins(w => ({ ...w, htmlFiles: false })); setMinimized(m => ({ ...m, htmlFiles: false })); }} /></div>}
-      {wins.write && isOwner && <div style={{ display: minimized.write ? "none" : "block" }}><WriteWindow categories={categories} post={writePost} onSave={savePost} onClose={() => { setWins(w => ({ ...w, write: false })); setMinimized(m => ({ ...m, write: false })); }} /></div>}
-      {wins.view && viewPost && <div style={{ display: minimized.view ? "none" : "block" }}><PostViewWindow post={viewPost} isOwner={isOwner} onEdit={() => { setWritePost(viewPost); setWins(w => ({ ...w, view: false, write: true })); }} onClose={() => { setWins(w => ({ ...w, view: false })); setMinimized(m => ({ ...m, view: false })); }} /></div>}
+      {wins.gallery && <div style={{ display: minimized.gallery ? "none" : "block" }}><GalleryWindow gallery={gallery} isOwner={isOwner} onAdd={() => {}} onView={g => openItem(g, "gallery")} onClose={() => { setWins(w => ({ ...w, gallery: false })); setMinimized(m => ({ ...m, gallery: false })); }} onMinimize={() => setMinimized(m => ({ ...m, gallery: true }))} /></div>}
+      {wins.htmlFiles && <div style={{ display: minimized.htmlFiles ? "none" : "block" }}><HtmlFilesWindow files={htmlFiles} isOwner={isOwner} onOpen={f => openItem(f, "html")} onAdd={() => setHtmlModal({})} onClose={() => { setWins(w => ({ ...w, htmlFiles: false })); setMinimized(m => ({ ...m, htmlFiles: false })); }} onMinimize={() => setMinimized(m => ({ ...m, htmlFiles: true }))} /></div>}
+      {wins.write && isOwner && <div style={{ display: minimized.write ? "none" : "block" }}><WriteWindow categories={categories} post={writePost} onSave={savePost} onClose={() => { setWins(w => ({ ...w, write: false })); setMinimized(m => ({ ...m, write: false })); }} onMinimize={() => setMinimized(m => ({ ...m, write: true }))} /></div>}
+      {wins.view && viewPost && <div style={{ display: minimized.view ? "none" : "block" }}><PostViewWindow post={viewPost} isOwner={isOwner} onEdit={() => { setWritePost(viewPost); setWins(w => ({ ...w, view: false, write: true })); }} onClose={() => { setWins(w => ({ ...w, view: false })); setMinimized(m => ({ ...m, view: false })); }} onMinimize={() => setMinimized(m => ({ ...m, view: true }))} /></div>}
 
       {wins.galView && viewGal && (
         <Win98Window title={viewGal.title} icon="🖼️" initialPos={{ x: 150, y: 80 }} onClose={() => setWins(w => ({ ...w, galView: false }))} zIndex={40}>
