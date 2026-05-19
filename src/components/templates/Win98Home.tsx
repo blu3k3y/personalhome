@@ -564,12 +564,28 @@ export default function Win98Home({ username, isOwner: isOwnerProp, initialData 
                 <div key={c.id} style={{ display: "flex", alignItems: "center", gap: 6, padding: "4px 4px", borderBottom: "1px solid #d0d0d0", fontSize: 11 }}
                   onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = "#e0e0e0"}
                   onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = "transparent"}>
-                  <span>📁</span>
-                  <span style={{ flex: 1 }}>{c.name}</span>
-                  {isOwner && <button onClick={() => delCat(c.id)} style={{ ...W.btn98, padding: "1px 6px", fontSize: 10, color: "#c00" }}>✕</button>}
+                  <span style={{ cursor: "pointer", flex: 1, display: "flex", alignItems: "center", gap: 6 }}
+                    onClick={() => { setActiveCat98(c.id); setWins(w => ({ ...w, posts: true })); setMinimized(m => ({ ...m, posts: false })); setCatWinOpen(false); }}>
+                    <span>📁</span>
+                    <span style={{ flex: 1 }}>{c.name}</span>
+                    <span style={{ fontSize: 10, color: "#808080" }}>
+                      {posts.filter(p => p.category === c.name).length}
+                    </span>
+                  </span>
+                  {isOwner && <button onClick={() => delCat(c.id)}
+                    style={{ ...W.btn98, padding: "1px 6px", fontSize: 10, color: "#c00" }}>✕</button>}
                 </div>
               ))
             }
+            {/* 전체 글 보기 */}
+            <div style={{ padding: "4px 4px", borderBottom: "1px solid #d0d0d0", fontSize: 11, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}
+              onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = "#e0e0e0"}
+              onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = "transparent"}
+              onClick={() => { setActiveCat98("all"); setWins(w => ({ ...w, posts: true })); setMinimized(m => ({ ...m, posts: false })); setCatWinOpen(false); }}>
+              <span>📂</span>
+              <span style={{ flex: 1 }}>전체 글</span>
+              <span style={{ fontSize: 10, color: "#808080" }}>{posts.length}</span>
+            </div>
             {isOwner && (
               <div style={{ display: "flex", gap: 4, marginTop: 8 }}>
                 <input value={newCat} onChange={e => setNewCat(e.target.value)} onKeyDown={e => e.key === "Enter" && addCat()} placeholder="New category..." style={{ ...W.input98, flex: 1, fontSize: 11 }} />
