@@ -71,14 +71,16 @@ function PwGate({ onSuccess, onCancel }: { onSuccess: (pw: string) => void; onCa
 }
 
 /* ── Win98Window ── */
-function Win98Window({ title, icon = "📄", children, initialPos, onClose, zIndex = 10, onFocus }: {
+function Win98Window({ title, icon = "📄", children, initialPos, onClose, zIndex = 10, onFocus, onMinimizedChange }: {
   title: string; icon?: string; children: React.ReactNode;
   initialPos: { x: number; y: number }; onClose: () => void;
-  zIndex?: number; onFocus?: () => void;
+  zIndex?: number; onFocus?: () => void; onMinimizedChange?: (v: boolean) => void;
 }) {
   const [pos, setPos] = useState(initialPos);
   const [minimized, setMinimized] = useState(false);
   const dragRef = useRef<{ startX: number; startY: number; origX: number; origY: number } | null>(null);
+
+  const setMin = (v: boolean) => { setMinimized(v); onMinimizedChange?.(v); };
 
   const onMouseDown = (e: React.MouseEvent) => {
     onFocus?.();
@@ -99,7 +101,7 @@ function Win98Window({ title, icon = "📄", children, initialPos, onClose, zInd
       <div style={W.titlebar} onMouseDown={onMouseDown}>
         <span style={{ display: "flex", alignItems: "center", gap: 4 }}><span style={{ fontSize: 12 }}>{icon}</span>{title}</span>
         <div style={{ display: "flex", gap: 2 }}>
-          <div style={W.winBtn} onMouseDown={e => { e.stopPropagation(); setMinimized(true); }}>_</div>
+          <div style={W.winBtn} onMouseDown={e => { e.stopPropagation(); setMin(true); }}>_</div>
           <div style={W.winBtn} onMouseDown={e => e.stopPropagation()}>□</div>
           <div style={W.winBtn} onMouseDown={e => { e.stopPropagation(); onClose(); }}>✕</div>
         </div>
@@ -429,6 +431,7 @@ export default function Win98Home({ username, isOwner: isOwnerProp, initialData 
   });
 
   const [wins, setWins] = useState({ posts: false, gallery: false, htmlFiles: false, write: false, view: false, galView: false, htmlView: false });
+  const [minimized, setMinimized] = useState({ posts: false, gallery: false, htmlFiles: false, write: false, view: false, galView: false, htmlView: false, settings: false, cats: false });
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [catWinOpen, setCatWinOpen] = useState(false);
   const [writePost, setWritePost] = useState<Post | undefined>();
@@ -540,12 +543,15 @@ export default function Win98Home({ username, isOwner: isOwnerProp, initialData 
 
       {/* Settings Window */}
       {settingsOpen && (
-        <SettingsWindow bg={bg} onChangeBg={handleBgChange} onClose={() => setSettingsOpen(false)} isOwner={isOwner} />
+        <div style={{ display: minimized.settings ? "none" : "block" }}>
+          <SettingsWindow bg={bg} onChangeBg={handleBgChange} onClose={() => { setSettingsOpen(false); setMinimized(m => ({ ...m, settings: false })); }} isOwner={isOwner} />
+        </div>
       )}
 
       {/* Categories Window */}
       {catWinOpen && (
-        <Win98Window title="Categories" icon="📂" initialPos={{ x: 100, y: 120 }} onClose={() => setCatWinOpen(false)} zIndex={20}>
+        <div style={{ display: minimized.cats ? "none" : "block" }}>
+        <Win98Window title="Categories" icon="📂" initialPos={{ x: 100, y: 120 }} onClose={() => { setCatWinOpen(false); setMinimized(m => ({ ...m, cats: false })); }} zIndex={20}>
           <div style={W.menubar}><span style={{ padding: "1px 6px" }}>Manage</span></div>
           <div style={{ width: 240, padding: 8 }}>
             {categories.length === 0
@@ -569,11 +575,13 @@ export default function Win98Home({ username, isOwner: isOwnerProp, initialData 
           </div>
           <div style={W.statusbar}><span style={W.statusPanel}>{categories.length} item(s)</span></div>
         </Win98Window>
+        </div>
       )}
 
       {/* Posts Window */}
       {wins.posts && (
-        <Win98Window title={`${username}'s Posts`} icon="📋" initialPos={{ x: 12, y: 170 }} onClose={() => setWins(w => ({ ...w, posts: false }))} zIndex={15}>
+        <div style={{ display: minimized.posts ? "none" : "block" }}>
+        <Win98Window title={`${username}'s Posts`} icon="📋" initialPos={{ x: 12, y: 170 }} onClose={() => { setWins(w => ({ ...w, posts: false })); setMinimized(m => ({ ...m, posts: false })); }} onMinimizedChange={v => setMinimized(m => ({ ...m, posts: v }))} zIndex={15}>
           <div style={W.menubar}>
             {isOwner && <span style={{ padding: "1px 6px", cursor: "pointer" }} onClick={() => { setWritePost(undefined); setWins(w => ({ ...w, write: true })); }}>+ New</span>}
             <span style={{ padding: "1px 6px" }}>View</span>
@@ -596,12 +604,13 @@ export default function Win98Home({ username, isOwner: isOwnerProp, initialData 
           </div>
           <div style={W.statusbar}><span style={W.statusPanel}>{posts.length} item(s)</span></div>
         </Win98Window>
+        </div>
       )}
 
-      {wins.gallery && <GalleryWindow gallery={gallery} isOwner={isOwner} onAdd={() => {}} onView={g => openItem(g, "gallery")} onClose={() => setWins(w => ({ ...w, gallery: false }))} />}
-      {wins.htmlFiles && <HtmlFilesWindow files={htmlFiles} isOwner={isOwner} onOpen={f => openItem(f, "html")} onAdd={() => setHtmlModal({})} onClose={() => setWins(w => ({ ...w, htmlFiles: false }))} />}
-      {wins.write && isOwner && <WriteWindow categories={categories} post={writePost} onSave={savePost} onClose={() => setWins(w => ({ ...w, write: false }))} />}
-      {wins.view && viewPost && <PostViewWindow post={viewPost} isOwner={isOwner} onEdit={() => { setWritePost(viewPost); setWins(w => ({ ...w, view: false, write: true })); }} onClose={() => setWins(w => ({ ...w, view: false }))} />}
+      {wins.gallery && <div style={{ display: minimized.gallery ? "none" : "block" }}><GalleryWindow gallery={gallery} isOwner={isOwner} onAdd={() => {}} onView={g => openItem(g, "gallery")} onClose={() => { setWins(w => ({ ...w, gallery: false })); setMinimized(m => ({ ...m, gallery: false })); }} /></div>}
+      {wins.htmlFiles && <div style={{ display: minimized.htmlFiles ? "none" : "block" }}><HtmlFilesWindow files={htmlFiles} isOwner={isOwner} onOpen={f => openItem(f, "html")} onAdd={() => setHtmlModal({})} onClose={() => { setWins(w => ({ ...w, htmlFiles: false })); setMinimized(m => ({ ...m, htmlFiles: false })); }} /></div>}
+      {wins.write && isOwner && <div style={{ display: minimized.write ? "none" : "block" }}><WriteWindow categories={categories} post={writePost} onSave={savePost} onClose={() => { setWins(w => ({ ...w, write: false })); setMinimized(m => ({ ...m, write: false })); }} /></div>}
+      {wins.view && viewPost && <div style={{ display: minimized.view ? "none" : "block" }}><PostViewWindow post={viewPost} isOwner={isOwner} onEdit={() => { setWritePost(viewPost); setWins(w => ({ ...w, view: false, write: true })); }} onClose={() => { setWins(w => ({ ...w, view: false })); setMinimized(m => ({ ...m, view: false })); }} /></div>}
 
       {wins.galView && viewGal && (
         <Win98Window title={viewGal.title} icon="🖼️" initialPos={{ x: 150, y: 80 }} onClose={() => setWins(w => ({ ...w, galView: false }))} zIndex={40}>
@@ -628,11 +637,13 @@ export default function Win98Home({ username, isOwner: isOwnerProp, initialData 
       {/* Taskbar */}
       <div style={W.taskbar}>
         <div style={W.startBtn}>🪟 Start</div>
-        {wins.posts && <div style={W.taskbarItem}>📋 Posts</div>}
-        {wins.gallery && <div style={W.taskbarItem}>🖼️ Gallery</div>}
-        {wins.htmlFiles && <div style={W.taskbarItem}>🌐 HTML Files</div>}
-        {wins.write && <div style={W.taskbarItem}>📝 New Entry</div>}
-        {settingsOpen && <div style={W.taskbarItem}>⚙️ Settings</div>}
+        {wins.posts && <div style={{ ...W.taskbarItem, background: minimized.posts ? "#c0c0c0" : "#a0a0a0" }} onClick={() => setMinimized(m => ({ ...m, posts: !m.posts }))}>📋 Posts</div>}
+        {wins.gallery && <div style={{ ...W.taskbarItem, background: minimized.gallery ? "#c0c0c0" : "#a0a0a0" }} onClick={() => setMinimized(m => ({ ...m, gallery: !m.gallery }))}>🖼️ Gallery</div>}
+        {wins.htmlFiles && <div style={{ ...W.taskbarItem, background: minimized.htmlFiles ? "#c0c0c0" : "#a0a0a0" }} onClick={() => setMinimized(m => ({ ...m, htmlFiles: !m.htmlFiles }))}>🌐 HTML Files</div>}
+        {wins.write && <div style={{ ...W.taskbarItem, background: minimized.write ? "#c0c0c0" : "#a0a0a0" }} onClick={() => setMinimized(m => ({ ...m, write: !m.write }))}>📝 New Entry</div>}
+        {wins.view && <div style={{ ...W.taskbarItem, background: minimized.view ? "#c0c0c0" : "#a0a0a0" }} onClick={() => setMinimized(m => ({ ...m, view: !m.view }))}>📄 Post</div>}
+        {settingsOpen && <div style={{ ...W.taskbarItem, background: minimized.settings ? "#c0c0c0" : "#a0a0a0" }} onClick={() => setMinimized(m => ({ ...m, settings: !m.settings }))}>⚙️ Settings</div>}
+        {catWinOpen && <div style={{ ...W.taskbarItem, background: minimized.cats ? "#c0c0c0" : "#a0a0a0" }} onClick={() => setMinimized(m => ({ ...m, cats: !m.cats }))}>📂 Categories</div>}
         <div style={W.clock}>{clock}</div>
       </div>
     </div>
