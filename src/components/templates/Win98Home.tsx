@@ -487,7 +487,7 @@ export default function Win98Home({ username, isOwner: isOwnerProp, initialData 
   const [catWinOpen, setCatWinOpen] = useState(false);
   const [writePost, setWritePost] = useState<Post | undefined>();
   const [viewPost, setViewPost] = useState<Post | null>(null);
-  const [viewGal, setViewGal] = useState<GalleryItem | null>(null);
+  const [viewGal, setViewGal] = useState<GalleryItem[]>([]);
   const [viewHtml, setViewHtml] = useState<HtmlFile | null>(null);
   const [pwGate, setPwGate] = useState<null | { item: any; type: string; correct: string; onSuccess: () => void }>(null);
   const [newCat, setNewCat] = useState("");
@@ -544,7 +544,7 @@ export default function Win98Home({ username, isOwner: isOwnerProp, initialData 
       const c = await api("/api/gallery", "POST", d);
       setGallery(gs => [c, ...gs]);
     }
-    setGalModal(null); setViewGal(null);
+    setGalModal(null);
   };
 
   const delPost = async (id: string) => {
@@ -581,7 +581,7 @@ export default function Win98Home({ username, isOwner: isOwnerProp, initialData 
   const openItem = (item: any, type: "post" | "gallery" | "html") => {
     const open = () => {
       if (type === "post") { setViewPost(item); setWins(w => ({ ...w, view: true })); }
-      else if (type === "gallery") { setViewGal(item); setWins(w => ({ ...w, galView: true })); }
+      else if (type === "gallery") { setViewGal(gs => [...gs, item]); setWins(w => ({ ...w, galView: true })); }
       else { setViewHtml(item); setWins(w => ({ ...w, htmlView: true })); }
     };
     if (!item.isPrivate || isOwner) { open(); return; }
@@ -706,14 +706,17 @@ export default function Win98Home({ username, isOwner: isOwnerProp, initialData 
       {wins.write && isOwner && <div style={{ display: minimized.write ? "none" : "block" }}><WriteWindow categories={categories} post={writePost} onSave={savePost} onClose={() => { setWins(w => ({ ...w, write: false })); setMinimized(m => ({ ...m, write: false })); }} onMinimize={() => setMinimized(m => ({ ...m, write: true }))} /></div>}
       {wins.view && viewPost && <div style={{ display: minimized.view ? "none" : "block" }}><PostViewWindow post={viewPost} isOwner={isOwner} onEdit={() => { setWritePost(viewPost); setWins(w => ({ ...w, view: false, write: true })); }} onClose={() => { setWins(w => ({ ...w, view: false })); setMinimized(m => ({ ...m, view: false })); }} onMinimize={() => setMinimized(m => ({ ...m, view: true }))} /></div>}
 
-      {wins.galView && viewGal && (
-        <Win98Window title={viewGal.title} icon="🖼️" initialPos={{ x: 150, y: 80 }} onClose={() => setWins(w => ({ ...w, galView: false }))} zIndex={40}>
+      {viewGal.map((g, i) => (
+        <Win98Window key={g.id} title={g.title} icon="🖼️" initialPos={{ x: 150 + i * 24, y: 80 + i * 24 }} onClose={() => setViewGal(gs => gs.filter(x => x.id !== g.id))} zIndex={40 + i}>
           <div style={{ padding: 8, maxWidth: 400 }}>
-            {viewGal.imageData ? <img src={viewGal.imageData} alt={viewGal.title} style={{ maxWidth: "100%", maxHeight: 300, display: "block" }} /> : <div style={{ width: 200, height: 150, background: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 48 }}>🖼️</div>}
-            <p style={{ fontSize: 10, color: "#808080", marginTop: 4 }}>{fmtDate(viewGal.createdAt)}</p>
+            {g.imageData
+              ? <img src={g.imageData} alt={g.title} style={{ maxWidth: "100%", maxHeight: 300, display: "block" }} />
+              : <div style={{ width: 200, height: 150, background: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 48 }}>🖼️</div>
+            }
+            <p style={{ fontSize: 10, color: "#808080", marginTop: 4 }}>{fmtDate(g.createdAt)}</p>
           </div>
         </Win98Window>
-      )}
+      ))}
 
       {wins.htmlView && viewHtml && (() => {
         const blob = new Blob([viewHtml.htmlContent], { type: "text/html" });
