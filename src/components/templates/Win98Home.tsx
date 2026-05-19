@@ -256,8 +256,7 @@ function WriteWindow({ categories, post, onSave, onClose, onMinimize }: {
         </div>
         {!htmlMode
           ? <div ref={editorRef} contentEditable suppressContentEditableWarning onInput={() => setContent(editorRef.current?.innerHTML || "")} style={{ background: "#fff", border: "2px solid", borderColor: "#808080 #fff #fff #808080", minHeight: 160, padding: 6, fontSize: 11, outline: "none", lineHeight: 1.6 }} />
-          : <textarea value={content} onChange={e => setContent(e.target.value)}
-              style={{ background: "#fff", border: "2px solid", borderColor: "#808080 #fff #fff #808080", width: "100%", minHeight: 160, padding: 6, fontSize: 11, fontFamily: "monospace", outline: "none", resize: "vertical", boxSizing: "border-box", display: "block" }} />
+          : <textarea value={content} onChange={e => setContent(e.target.value)} style={{ background: "#fff", border: "2px solid", borderColor: "#808080 #fff #fff #808080", width: "100%", minHeight: 160, padding: 6, fontSize: 11, fontFamily: "monospace", outline: "none", resize: "vertical" }} />
         }
         <div style={{ display: "flex", gap: 6, justifyContent: "flex-end", marginTop: 8 }}>
           <button style={W.btn98} onClick={onClose}>Cancel</button>
@@ -437,6 +436,14 @@ export default function Win98Home({ username, isOwner: isOwnerProp, initialData 
   const [pwGate, setPwGate] = useState<null | { item: any; type: string; correct: string; onSuccess: () => void }>(null);
   const [newCat, setNewCat] = useState("");
   const [htmlModal, setHtmlModal] = useState<null | { item?: HtmlFile }>(null);
+  const [activeCat98, setActiveCat98] = useState("all");
+
+  const filteredPosts98 = activeCat98 === "all"
+    ? posts
+    : posts.filter(p => {
+        const cat = categories.find(c => c.id === activeCat98);
+        return cat ? p.category === cat.name : true;
+      });
 
   useEffect(() => {
     const tick = () => { const d = new Date(); setClock(`${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`); };
@@ -581,24 +588,30 @@ export default function Win98Home({ username, isOwner: isOwnerProp, initialData 
           <div style={W.menubar}>
             {isOwner && <span style={{ padding: "1px 6px", cursor: "pointer" }} onClick={() => { setWritePost(undefined); setWins(w => ({ ...w, write: true })); }}>+ New</span>}
             <span style={{ padding: "1px 6px" }}>View</span>
+            <select value={activeCat98} onChange={e => setActiveCat98(e.target.value)}
+              style={{ marginLeft: "auto", background: "#fff", border: "1px solid #808080", fontSize: 10, height: 18, padding: "0 2px", cursor: "pointer" }}>
+              <option value="all">전체</option>
+              {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+            </select>
           </div>
-          <div style={{ width: 280, maxHeight: 220, overflow: "auto" }}>
-            {posts.length === 0
+          <div style={{ width: 300, maxHeight: 260, overflow: "auto" }}>
+            {filteredPosts98.length === 0
               ? <div style={{ padding: 12, fontSize: 11, color: "#808080", textAlign: "center" }}>No posts yet.</div>
-              : posts.map(post => (
+              : filteredPosts98.map(post => (
                 <div key={post.id} onClick={() => openItem(post, "post")}
                   style={{ display: "flex", alignItems: "center", gap: 6, padding: "4px 8px", cursor: "pointer", fontSize: 11, borderBottom: "1px solid #d0d0d0" }}
                   onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "#000080"; (e.currentTarget as HTMLElement).style.color = "#fff"; }}
                   onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "transparent"; (e.currentTarget as HTMLElement).style.color = "#000"; }}>
                   <span>{post.isPrivate ? "🔒" : "📄"}</span>
                   <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" as const }}>{post.title}</span>
-                  <span style={{ fontSize: 10, opacity: 0.7 }}>{fmtDate(post.createdAt)}</span>
-                  {isOwner && <span onClick={e => { e.stopPropagation(); delPost(post.id); }} style={{ fontSize: 10, cursor: "pointer", opacity: 0.6 }}>🗑️</span>}
+                  {post.category && <span style={{ fontSize: 9, background: "#000080", color: "#fff", padding: "1px 4px", flexShrink: 0 }}>{post.category}</span>}
+                  <span style={{ fontSize: 10, opacity: 0.7, flexShrink: 0 }}>{fmtDate(post.createdAt)}</span>
+                  {isOwner && <span onClick={e => { e.stopPropagation(); delPost(post.id); }} style={{ fontSize: 10, cursor: "pointer", opacity: 0.6, flexShrink: 0 }}>🗑️</span>}
                 </div>
               ))
             }
           </div>
-          <div style={W.statusbar}><span style={W.statusPanel}>{posts.length} item(s)</span></div>
+          <div style={W.statusbar}><span style={W.statusPanel}>{filteredPosts98.length} item(s)</span></div>
         </Win98Window>
         </div>
       )}
