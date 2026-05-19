@@ -482,9 +482,11 @@ export default function Win98Home({ username, isOwner: isOwnerProp, initialData 
   });
 
   const [wins, setWins] = useState({ posts: false, gallery: false, htmlFiles: false, write: false, view: false, galView: false, htmlView: false });
-  const [minimized, setMinimized] = useState({ posts: false, gallery: false, htmlFiles: false, write: false, view: false, galView: false, htmlView: false, settings: false, cats: false });
+  const [minimized, setMinimized] = useState({ posts: false, gallery: false, htmlFiles: false, write: false, view: false, galView: false, htmlView: false, settings: false, cats: false, trash: false });
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [catWinOpen, setCatWinOpen] = useState(false);
+  const [trashOpen, setTrashOpen] = useState(false);
+  const [trash, setTrash] = useState<{ id: string; type: "post"|"gallery"|"html"; title: string; data: any; deletedAt: string }[]>([]);
   const [writePost, setWritePost] = useState<Post | undefined>();
   const [viewPost, setViewPost] = useState<Post | null>(null);
   const [viewGal, setViewGal] = useState<GalleryItem[]>([]);
@@ -548,9 +550,30 @@ export default function Win98Home({ username, isOwner: isOwnerProp, initialData 
   };
 
   const delPost = async (id: string) => {
-    if (!confirm("삭제할까요?")) return;
+    if (!confirm("휴지통으로 이동할까요?")) return;
+    const post = posts.find(p => p.id === id); if (!post) return;
     await api("/api/posts", "DELETE", { id });
     setPosts(ps => ps.filter(p => p.id !== id));
+    setTrash(t => [...t, { id: post.id, type: "post", title: post.title, data: post, deletedAt: new Date().toISOString() }]);
+  };
+
+  const restoreFromTrash = async (item: { id: string; type: string; title: string; data: any }) => {
+    if (item.type === "post") {
+      const { id, createdAt, updatedAt, ...rest } = item.data;
+      const created = await api("/api/posts", "POST", rest);
+      setPosts(ps => [created, ...ps]);
+    }
+    setTrash(t => t.filter(x => x.id !== item.id));
+  };
+
+  const deleteFromTrash = async (item: { id: string; type: string }) => {
+    if (!confirm("영구 삭제할까요? 복구할 수 없어요.")) return;
+    setTrash(t => t.filter(x => x.id !== item.id));
+  };
+
+  const emptyTrash = () => {
+    if (!confirm("휴지통을 비울까요? 모든 항목이 영구 삭제돼요.")) return;
+    setTrash([]);
   };
 
   const saveHtmlFile = async (d: any) => {
@@ -591,7 +614,7 @@ export default function Win98Home({ username, isOwner: isOwnerProp, initialData 
   return (
     <div style={{ ...W.desktop, background: bg }}>
       {/* Left icons */}
-      <DesktopIcon icon="🗑️" label="Trash" onClick={() => {}} x={12} y={12} />
+      <DesktopIcon icon={trash.length > 0 ? "🗑️" : "🗑️"} label={`Trash${trash.length > 0 ? ` (${trash.length})` : ""}`} onClick={() => setTrashOpen(true)} x={12} y={12} />
       <DesktopIcon icon="⚙️" label="Settings" onClick={() => setSettingsOpen(true)} x={12} y={90} />
 
       {/* Right icons */}
@@ -612,6 +635,46 @@ export default function Win98Home({ username, isOwner: isOwnerProp, initialData 
           </div>
         ))}
       </div>
+
+      {/* Trash Window */}
+      {trashOpen && (
+        <div style={{ display: minimized.trash ? "none" : "block" }}>
+          <Win98Window title="Recycle Bin" icon="🗑️" initialPos={{ x: 80, y: 100 }} onClose={() => { setTrashOpen(false); setMinimized(m => ({ ...m, trash: false })); }} onMinimize={() => setMinimized(m => ({ ...m, trash: true }))} zIndex={25}>
+            <div style={W.menubar}>
+              <span style={{ padding: "1px 6px" }}>File</span>
+              {isOwner && trash.length > 0 && <span style={{ padding: "1px 6px", cursor: "pointer", color: "#c00" }} onClick={emptyTrash}>🗑️ Empty</span>}
+            </div>
+            <div style={{ width: 320, maxHeight: 260, overflow: "auto" }}>
+              {trash.length === 0
+                ? <div style={{ padding: "24px 12px", fontSize: 11, color: "#808080", textAlign: "center" }}>
+                    <div style={{ fontSize: 28, marginBottom: 8 }}>🗑️</div>
+                    휴지통이 비어있어요.
+                  </div>
+                : trash.map(item => (
+                  <div key={item.id} style={{ display: "flex", alignItems: "center", gap: 6, padding: "5px 8px", borderBottom: "1px solid #d0d0d0", fontSize: 11 }}
+                    onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = "#e0e0e0"}
+                    onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = "transparent"}>
+                    <span>{item.type === "post" ? "📄" : item.type === "gallery" ? "🖼️" : "🌐"}</span>
+                    <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" as const }}>{item.title}</span>
+                    <span style={{ fontSize: 9, color: "#808080", flexShrink: 0 }}>{fmtDate(item.deletedAt)}</span>
+                    {isOwner && (
+                      <>
+                        <button onClick={() => restoreFromTrash(item)}
+                          style={{ ...W.btn98, padding: "1px 6px", fontSize: 9 }}>↩️</button>
+                        <button onClick={() => deleteFromTrash(item)}
+                          style={{ ...W.btn98, padding: "1px 6px", fontSize: 9, color: "#c00" }}>✕</button>
+                      </>
+                    )}
+                  </div>
+                ))
+              }
+            </div>
+            <div style={W.statusbar}>
+              <span style={W.statusPanel}>{trash.length} item(s)</span>
+            </div>
+          </Win98Window>
+        </div>
+      )}
 
       {/* Settings Window */}
       {settingsOpen && (
@@ -740,6 +803,7 @@ export default function Win98Home({ username, isOwner: isOwnerProp, initialData 
         {wins.htmlFiles && <div style={{ ...W.taskbarItem, background: minimized.htmlFiles ? "#c0c0c0" : "#a0a0a0" }} onClick={() => setMinimized(m => ({ ...m, htmlFiles: !m.htmlFiles }))}>🌐 HTML Files</div>}
         {wins.write && <div style={{ ...W.taskbarItem, background: minimized.write ? "#c0c0c0" : "#a0a0a0" }} onClick={() => setMinimized(m => ({ ...m, write: !m.write }))}>📝 New Entry</div>}
         {wins.view && <div style={{ ...W.taskbarItem, background: minimized.view ? "#c0c0c0" : "#a0a0a0" }} onClick={() => setMinimized(m => ({ ...m, view: !m.view }))}>📄 Post</div>}
+        {trashOpen && <div style={{ ...W.taskbarItem, background: minimized.trash ? "#c0c0c0" : "#a0a0a0" }} onClick={() => setMinimized(m => ({ ...m, trash: !m.trash }))}>🗑️ Trash</div>}
         {settingsOpen && <div style={{ ...W.taskbarItem, background: minimized.settings ? "#c0c0c0" : "#a0a0a0" }} onClick={() => setMinimized(m => ({ ...m, settings: !m.settings }))}>⚙️ Settings</div>}
         {catWinOpen && <div style={{ ...W.taskbarItem, background: minimized.cats ? "#c0c0c0" : "#a0a0a0" }} onClick={() => setMinimized(m => ({ ...m, cats: !m.cats }))}>📂 Categories</div>}
         <div style={W.clock}>{clock}</div>
