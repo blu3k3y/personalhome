@@ -398,6 +398,62 @@ function HtmlUploadModal98({ item, onSave, onClose }: { item?: HtmlFile; onSave:
   );
 }
 
+/* ── GalleryModal98 ── */
+function GalleryModal98({ item, onSave, onClose }: { item?: GalleryItem; onSave: (d: any) => Promise<void>; onClose: () => void }) {
+  const [title, setTitle] = useState(item?.title || "");
+  const [isPrivate, setIsPrivate] = useState(item?.isPrivate || false);
+  const [password, setPassword] = useState(item?.password || "");
+  const [imageData, setImageData] = useState<string | null>(item?.imageData || null);
+  const [loading, setLoading] = useState(false);
+
+  const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0]; if (!f) return;
+    const r = new FileReader(); r.onload = ev => setImageData(ev.target?.result as string); r.readAsDataURL(f);
+  };
+  const save = async () => {
+    if (!title.trim()) return alert("Title is required.");
+    if (isPrivate && !password) return alert("Set a password.");
+    setLoading(true);
+    await onSave({ id: item?.id, title, imageData, isPrivate, password: isPrivate ? password : "" });
+    setLoading(false);
+  };
+
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.5)", zIndex: 9000, display: "flex", alignItems: "center", justifyContent: "center" }} onClick={onClose}>
+      <div style={{ background: "#c0c0c0", border: "2px solid", borderColor: "#fff #808080 #808080 #fff", width: 360 }} onClick={e => e.stopPropagation()}>
+        <div style={W.titlebar}>
+          <span style={{ display: "flex", alignItems: "center", gap: 4 }}><span>🖼️</span>{item ? "Edit Image" : "Add Image"}</span>
+          <div style={W.winBtn} onClick={onClose}>✕</div>
+        </div>
+        <div style={{ padding: 12 }}>
+          <div style={{ marginBottom: 8 }}>
+            <span style={{ fontSize: 11 }}>Title: </span>
+            <input value={title} onChange={e => setTitle(e.target.value)} style={{ ...W.input98, width: "calc(100% - 40px)" }} />
+          </div>
+          <label style={{ display: "block", border: "2px solid", borderColor: "#808080 #fff #fff #808080", background: "#fff", padding: "20px", textAlign: "center", cursor: "pointer", marginBottom: 8, position: "relative" }}>
+            <input type="file" accept="image/*" onChange={handleFile} style={{ position: "absolute", inset: 0, opacity: 0, cursor: "pointer" }} />
+            {imageData
+              ? <img src={imageData} alt="" style={{ maxHeight: 140, maxWidth: "100%", display: "block", margin: "0 auto" }} />
+              : <div style={{ fontSize: 11, color: "#808080" }}><div style={{ fontSize: 28, marginBottom: 4 }}>📷</div>Click to select image</div>
+            }
+          </label>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+            <label style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, cursor: "pointer" }}>
+              <input type="checkbox" checked={isPrivate} onChange={e => setIsPrivate(e.target.checked)} />
+              🔒 Private
+            </label>
+            {isPrivate && <input type="password" placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} style={{ ...W.input98, flex: 1 }} />}
+          </div>
+          <div style={{ display: "flex", justifyContent: "flex-end", gap: 6 }}>
+            <button style={W.btn98} onClick={onClose}>Cancel</button>
+            <button style={W.btn98} onClick={save} disabled={loading}>{loading ? "Saving..." : item ? "Save" : "Add"}</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ── DesktopIcon ── */
 function DesktopIcon({ icon, label, onClick, x, y }: { icon: string; label: string; onClick: () => void; x: number; y: number }) {
   return (
@@ -436,6 +492,7 @@ export default function Win98Home({ username, isOwner: isOwnerProp, initialData 
   const [pwGate, setPwGate] = useState<null | { item: any; type: string; correct: string; onSuccess: () => void }>(null);
   const [newCat, setNewCat] = useState("");
   const [htmlModal, setHtmlModal] = useState<null | { item?: HtmlFile }>(null);
+  const [galModal, setGalModal] = useState<null | { item?: GalleryItem }>(null);
   const [activeCat98, setActiveCat98] = useState("all");
 
   const filteredPosts98 = activeCat98 === "all"
@@ -477,6 +534,17 @@ export default function Win98Home({ username, isOwner: isOwnerProp, initialData 
       setPosts(ps => [c, ...ps]);
     }
     setWins(w => ({ ...w, write: false }));
+  };
+
+  const saveGallery = async (d: any) => {
+    if (d.id) {
+      const u = await api("/api/gallery", "PUT", d);
+      setGallery(gs => gs.map(g => g.id === u.id ? u : g));
+    } else {
+      const c = await api("/api/gallery", "POST", d);
+      setGallery(gs => [c, ...gs]);
+    }
+    setGalModal(null); setViewGal(null);
   };
 
   const delPost = async (id: string) => {
@@ -633,7 +701,7 @@ export default function Win98Home({ username, isOwner: isOwnerProp, initialData 
         </div>
       )}
 
-      {wins.gallery && <div style={{ display: minimized.gallery ? "none" : "block" }}><GalleryWindow gallery={gallery} isOwner={isOwner} onAdd={() => {}} onView={g => openItem(g, "gallery")} onClose={() => { setWins(w => ({ ...w, gallery: false })); setMinimized(m => ({ ...m, gallery: false })); }} onMinimize={() => setMinimized(m => ({ ...m, gallery: true }))} /></div>}
+      {wins.gallery && <div style={{ display: minimized.gallery ? "none" : "block" }}><GalleryWindow gallery={gallery} isOwner={isOwner} onAdd={() => setGalModal({})} onView={g => openItem(g, "gallery")} onClose={() => { setWins(w => ({ ...w, gallery: false })); setMinimized(m => ({ ...m, gallery: false })); }} onMinimize={() => setMinimized(m => ({ ...m, gallery: true }))} /></div>}
       {wins.htmlFiles && <div style={{ display: minimized.htmlFiles ? "none" : "block" }}><HtmlFilesWindow files={htmlFiles} isOwner={isOwner} onOpen={f => openItem(f, "html")} onAdd={() => setHtmlModal({})} onClose={() => { setWins(w => ({ ...w, htmlFiles: false })); setMinimized(m => ({ ...m, htmlFiles: false })); }} onMinimize={() => setMinimized(m => ({ ...m, htmlFiles: true }))} /></div>}
       {wins.write && isOwner && <div style={{ display: minimized.write ? "none" : "block" }}><WriteWindow categories={categories} post={writePost} onSave={savePost} onClose={() => { setWins(w => ({ ...w, write: false })); setMinimized(m => ({ ...m, write: false })); }} onMinimize={() => setMinimized(m => ({ ...m, write: true }))} /></div>}
       {wins.view && viewPost && <div style={{ display: minimized.view ? "none" : "block" }}><PostViewWindow post={viewPost} isOwner={isOwner} onEdit={() => { setWritePost(viewPost); setWins(w => ({ ...w, view: false, write: true })); }} onClose={() => { setWins(w => ({ ...w, view: false })); setMinimized(m => ({ ...m, view: false })); }} onMinimize={() => setMinimized(m => ({ ...m, view: true }))} /></div>}
@@ -659,6 +727,7 @@ export default function Win98Home({ username, isOwner: isOwnerProp, initialData 
 
       {pwGate && <PwGate onSuccess={pw => { if (pw === pwGate.correct) pwGate.onSuccess(); else alert("Wrong password."); }} onCancel={() => setPwGate(null)} />}
       {htmlModal !== null && <HtmlUploadModal98 item={htmlModal.item} onSave={saveHtmlFile} onClose={() => setHtmlModal(null)} />}
+      {galModal !== null && <GalleryModal98 item={galModal.item} onSave={saveGallery} onClose={() => setGalModal(null)} />}
 
       {/* Taskbar */}
       <div style={W.taskbar}>
